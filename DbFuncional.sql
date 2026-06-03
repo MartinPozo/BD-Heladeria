@@ -82,6 +82,7 @@ CREATE TABLE producto (
 
 CREATE TABLE lote_producto (
     id_lote_producto SERIAL PRIMARY KEY,
+    coste_lote INT NOT NULL,
     stock INT NOT NULL,
     fecha_elaboracion DATE,
     fecha_vencimiento DATE,
