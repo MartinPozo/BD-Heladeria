@@ -74,14 +74,20 @@ CREATE TABLE maquina (
 
 CREATE TABLE producto (
     id_producto SERIAL PRIMARY KEY,
+    precio INT,
     nombre VARCHAR NOT NULL,
-    stock INT NOT NULL,
     es_vegano BOOLEAN DEFAULT FALSE,
+    receta TEXT
+);
+
+CREATE TABLE lote_producto (
+    id_lote_producto SERIAL PRIMARY KEY,
+    stock INT NOT NULL,
     fecha_elaboracion DATE,
     fecha_vencimiento DATE,
     fecha_salida_sala DATE,
-    receta TEXT,
-    id_maquina INT REFERENCES maquina(id_maquina)
+    id_maquina INT REFERENCES maquina(id_maquina),
+    id_producto INT REFERENCES producto(id_producto)
 );
 
 CREATE TABLE caja (
