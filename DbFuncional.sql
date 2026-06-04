@@ -116,6 +116,6 @@ CREATE TABLE transaccion (
 CREATE TABLE detalle_transaccion (
     id_detalle SERIAL PRIMARY KEY,
     id_transaccion INT REFERENCES transaccion(id_transaccion),
-    id_producto INT REFERENCES producto(id_producto),
+    id_lote_producto INT REFERENCES lote_producto(id_lote_producto),
     cantidad INT NOT NULL
 );
