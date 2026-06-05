@@ -45,7 +45,7 @@ def CargarDatosSinteticos():
         """
         INSERT INTO maquina (id_sucursal, fecha_ultima_limpieza, en_uso, consumo, sabor_actual)
         SELECT 
-            (i %% 3) + 1,
+            (i % 3) + 1,
             NOW() - (random() * INTERVAL '15 days'),
             true,
             (random() * 50 + 100)::decimal(10,2), 
@@ -78,7 +78,7 @@ def CargarDatosSinteticos():
             (floor(random() * 5 + 15))::text || '.' || floor(random()*899+100)::text || '.' || floor(random()*899+100)::text || '-' || floor(random()*10)::text,
             (ARRAY['Quidel', 'Andy', 'Bastián', 'Catalina', 'Diego', 'Elena', 'Felipe', 'Gloria', 'Hugo', 'Isabel'])[floor(random() * 10) + 1],
             (ARRAY['Barriga', 'Briones', 'Andrade', 'Barría', 'Cárdenas', 'Díaz', 'Espinoza', 'Flores', 'Galdames', 'Henríquez'])[floor(random() * 10) + 1],
-            (i %% 3) + 1
+            (i % 3) + 1
         FROM generate_series(1, 10) AS i;
         """,
         """
@@ -87,7 +87,7 @@ def CargarDatosSinteticos():
         """,
         """
         INSERT INTO caja (id_sucursal, numero_caja, estado)
-        SELECT (id_empleado %% 3) + 1, 1, true FROM empleado WHERE id_empleado <= 3;
+        SELECT (id_empleado % 3) + 1, 1, true FROM empleado WHERE id_empleado <= 3;
         """,
         """
         INSERT INTO detalle_caja (monto_apertura, monto_cierre, id_empleado_responsable, fecha, transacciones_del_dia, id_caja)
