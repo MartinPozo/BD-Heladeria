@@ -1,5 +1,5 @@
 SET search_path TO public;
-DROP TABLE IF EXISTS detalle_transaccion, transaccion, falla, contrato, turno, horario, empleado, caja, producto, maquina, sucursal, cliente CASCADE;
+DROP TABLE IF EXISTS detalle_transaccion, transaccion, detalle_caja, falla, contrato, turno, horario, empleado, caja, producto, maquina, sucursal, cliente CASCADE;
 
 CREATE TABLE sucursal (
     id_sucursal SERIAL PRIMARY KEY,
@@ -95,11 +95,17 @@ CREATE TABLE caja (
     id_caja SERIAL PRIMARY KEY,
     id_sucursal INT REFERENCES sucursal(id_sucursal),
     numero_caja INT NOT NULL,
-    estado BOOLEAN DEFAULT FALSE,
+    estado BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE detalle_caja (
+    id_detalle_caja SERIAL PRIMARY KEY,
     monto_apertura DECIMAL(10,2),
     monto_cierre DECIMAL(10,2),
     id_empleado_responsable INT REFERENCES empleado(id_empleado),
-    transacciones_del_dia INT DEFAULT 0
+    fecha DATE,
+    transacciones_del_dia INT DEFAULT 0,
+    id_caja INT REFERENCES caja(id_caja)
 );
 
 CREATE TABLE transaccion (
