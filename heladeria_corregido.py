@@ -27,6 +27,11 @@ def Ejecutar(sql, parametros = None, retornar_datos = False):
         conn.close()
 
 def CargarDatosSinteticos():
+    hay_datos = Ejecutar("SELECT COUNT(*) FROM sucursal", retornar_datos=True)
+    if hay_datos and hay_datos[0][0] > 0:
+        print("Base de datos ya tiene datos, omitiendo carga sintética.")
+        return
+
     sentencias = [
         "SET search_path TO public;",
         """
@@ -45,7 +50,7 @@ def CargarDatosSinteticos():
         """
         INSERT INTO maquina (id_sucursal, fecha_ultima_limpieza, en_uso, consumo, sabor_actual)
         SELECT 
-            (i % 3) + 1,
+            (i %% 3) + 1,
             NOW() - (random() * INTERVAL '15 days'),
             true,
             (random() * 50 + 100)::decimal(10,2), 
@@ -78,7 +83,7 @@ def CargarDatosSinteticos():
             (floor(random() * 5 + 15))::text || '.' || floor(random()*899+100)::text || '.' || floor(random()*899+100)::text || '-' || floor(random()*10)::text,
             (ARRAY['Quidel', 'Andy', 'Bastián', 'Catalina', 'Diego', 'Elena', 'Felipe', 'Gloria', 'Hugo', 'Isabel'])[floor(random() * 10) + 1],
             (ARRAY['Barriga', 'Briones', 'Andrade', 'Barría', 'Cárdenas', 'Díaz', 'Espinoza', 'Flores', 'Galdames', 'Henríquez'])[floor(random() * 10) + 1],
-            (i % 3) + 1
+            (i %% 3) + 1
         FROM generate_series(1, 10) AS i;
         """,
         """
@@ -87,7 +92,7 @@ def CargarDatosSinteticos():
         """,
         """
         INSERT INTO caja (id_sucursal, numero_caja, estado)
-        SELECT (id_empleado % 3) + 1, 1, true FROM empleado WHERE id_empleado <= 3;
+        SELECT (id_empleado %% 3) + 1, 1, true FROM empleado WHERE id_empleado <= 3;
         """,
         """
         INSERT INTO detalle_caja (monto_apertura, monto_cierre, id_empleado_responsable, fecha, transacciones_del_dia, id_caja)
@@ -138,7 +143,6 @@ def CargarDatosSinteticos():
         print("¡Muestra de datos realistas creada con éxito!")
     except Exception as e:
         print(f"Error al poblar la base de datos: {e}")
-
 
 def ListarSucursales():
     sucursales = Ejecutar("SELECT id_sucursal, ciudad, direccion, numero_empleados, numero_ventas FROM sucursal ORDER BY id_sucursal ASC", retornar_datos=True)
@@ -1213,44 +1217,56 @@ def AñadirEmpleado(Id):
                 break
             print("Fecha inválida o anterior a la fecha de inicio. Intente nuevamente.")
 
-    sql_emp = """
-    INSERT INTO empleado (rut, nombre, apellido, id_sucursal) 
-    VALUES (%s, %s, %s, %s) RETURNING id_empleado;
-    """
-    res_emp = Ejecutar(sql_emp, (rut, nombre, apellido, Id), retornar_datos=True)
-    if not res_emp:
-        print("[ERROR] No se pudo registrar al empleado.")
-        return
-    id_empleado = res_emp[0][0]
-
-    sql_con = """
-    INSERT INTO contrato (id_empleado, fecha_inicio, fecha_termino, es_indefinido, cargo) 
-    VALUES (%s, %s, %s, %s, %s) RETURNING id_contrato;
-    """
-    Ejecutar(sql_con, (id_empleado, fecha_inicio, fecha_termino, es_indefinido, cargo))
-
+    # ── Recolectar horarios ANTES de abrir la transacción ──
+    horarios_a_insertar = []
     print('\n--- ASIGNACIÓN DE HORARIOS SEMANALES ---')
-    sql_hor = """
-    INSERT INTO horario (id_empleado, dia_semana, hora_entrada_estimada, hora_salida_estimada) 
-    VALUES (%s, %s, %s, %s);
-    """
-    
     while True:
         dia = input('Día de la semana (Ej: Lunes, Martes / Escriba 0 para finalizar / X para cancelar): ').strip()
         if dia.lower() == 'x': return
         if dia == '0':
             break
-            
+
         entrada = input(f'Hora de entrada estimada para el {dia} (HH:MM:SS): ').strip()
         if entrada.lower() == 'x': return
-        
+
         salida = input(f'Hora de salida estimada para el {dia} (HH:MM:SS): ').strip()
         if salida.lower() == 'x': return
 
-        Ejecutar(sql_hor, (id_empleado, dia, entrada, salida))
+        horarios_a_insertar.append((dia, entrada, salida))
 
-    print(f"\n[SISTEMA] Empleado registrado exitosamente con ID {id_empleado} en la sucursal {Id}.")
-    
+    # ── Una sola conexión para empleado + contrato + horarios ──
+    conn = Conectar()
+    cursor = conn.cursor()
+    try:
+        sql_emp = """
+        INSERT INTO empleado (rut, nombre, apellido, id_sucursal) 
+        VALUES (%s, %s, %s, %s) RETURNING id_empleado;
+        """
+        cursor.execute(sql_emp, (rut, nombre, apellido, Id))
+        id_empleado = cursor.fetchone()[0]
+
+        sql_con = """
+        INSERT INTO contrato (id_empleado, fecha_inicio, fecha_termino, es_indefinido, cargo) 
+        VALUES (%s, %s, %s, %s, %s);
+        """
+        cursor.execute(sql_con, (id_empleado, fecha_inicio, fecha_termino, es_indefinido, cargo))
+
+        sql_hor = """
+        INSERT INTO horario (id_empleado, dia_semana, hora_entrada_estimada, hora_salida_estimada) 
+        VALUES (%s, %s, %s, %s);
+        """
+        for dia, entrada, salida in horarios_a_insertar:
+            cursor.execute(sql_hor, (id_empleado, dia, entrada, salida))
+
+        conn.commit()
+        print(f"\n[SISTEMA] Empleado registrado exitosamente con ID {id_empleado} en la sucursal {Id}.")
+
+    except Exception as e:
+        conn.rollback()
+        print(f"[ERROR] No se pudo registrar al empleado: {e}")
+    finally:
+        cursor.close()
+        conn.close()
 
 def ConsultarEdicionEmpleado(Id):
     if str(Id).lower() == 'x': return
