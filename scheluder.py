@@ -5,18 +5,18 @@ from datetime import datetime
 
 def ConectarBaseTransaccional():
     return psycopg2.connect(
-        dbname = "Heladeria_Db",
+        dbname = "Heladeria",
         user = "postgres",
-        password = "1234",
+        password = "13456",
         host = "localhost",
         port = "5432"
     )
 
 def ConectarBaseAnalitica():
     return psycopg2.connect(
-        dbname = "Heladeria_Analitica",  # CORREGIDO: base de datos analítica separada
+        dbname = "HeladeriaAnalitica",
         user = "postgres",
-        password = "1234",
+        password = "13456",
         host = "localhost",
         port = "5432"
     )
@@ -47,7 +47,7 @@ def limpiar_rut_a_int(rut_str):
 
 def MeterDatos():
 
-    # Hecho Venta
+    # Hecho Venta ---------------------------------------------------------
     
     conn_trans = ConectarBaseTransaccional()
     conn_analitica = ConectarBaseAnalitica()
@@ -407,3 +407,4 @@ schedule.every().day.at("01:00").do(MeterDatos)
 while True:
     schedule.run_pending()
     time.sleep(1)
+
